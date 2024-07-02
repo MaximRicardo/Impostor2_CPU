@@ -1,0 +1,120 @@
+The Impostor2 is a non backwards compatible upgrade from the 8-Bit Impostor (Which I never released an ISA for).
+The Impostor2 is a 16 bit CPU with a 16 bit data bus, a 24 bit address bus, 4 general purpose registers, a 64K stack, a base pointer and more.
+
+
+
+Impostor2 Registers:
+
+    General purpose registers
+    r0
+    r1
+    r2
+    r3
+
+    Stack registers
+    sp
+    bp
+
+    Bank registers
+    pb
+    db
+
+    Misc
+    pc
+
+
+
+Register descriptions:
+
+    General purpose registers, as the name implies, are general purpose and can be used for arithmetic, pointers, indexing, etc.
+
+    Stack registers, have uses related to the stack. SP stands for stack pointer, and BP stands for base pointer. Whenever a push or pop instruction is executed, sp will be used and affected by the instruction.
+    bp is supposed to be used for setting up stack frames, however it does not necessarily have to be. Any register other than sp could just as easily be used for stack frames, however using bp is recommended as it is the standard.
+    If, for whatever reason you don't need to use bp and/or sp for their intended purposes, they can also be used as general purpose registers, just like r0-r3.
+
+    Bank registers, have uses related to the upper 8 bits of the address bus, also called the bank. PB stands for program bank, and DB stands for data bank. The current program that is being executed must be at the bank in specified
+    pb. Whenever the program counter is dereferenced to read the next instruction, the pb will be appended to the program counter to make the full 24 bit address. db, on the other hand, will always be appended to the address used in
+    all of the following instructions: ldw, stw, liw, siw, psh, pop. Note that pb and db are still 16 bit registers, because idk. If, for whatever reason, you don't need to use db or pb for their intended uses (literally impossible
+    in the case of pb), they can be used as general purpose registers. However, I don't recommend ever doing that.
+
+    The last register, is the pc. PC stands for program counter, and holds a 16 bit pointer to the location of the next instruction in the program bank. Note that the pc can not be used as a register argument in any opcodes, and the
+    only way to directly change the value of pc is via a jump or a return instruction
+
+
+
+Opcode structures:
+
+    The structure of an opcode in machine code will be like this:
+
+    First 16 bits
+        0000xxxyyyzzzzzz    Here, 0 is always set to 0, x is the second register operand used by the opcode, y is the first register operand, and z is the value of the opcode itself
+
+    Second 16 bits
+        wwwwwwwwwwwwwwww    Here, w is the immediate 16 bit value argument for the opcode
+
+    Third 16 bits
+        vvvvvvvvvvvvvvvv    Here, v is the second immediate 16 bit value argument for the opcode
+
+
+    The size of an instruction can vary from 2-6 bytes depending on how many immediate values it takes as arguments.
+    For instructions that do not use the x bits, those bits can be set to anything, and same goes for the y bits.
+
+
+    The structure of an opcode in assembly will look like this:
+
+        opcode A B immediate1 immediate2
+
+    No instruction has all of these arguments, however the arguments will always be in this order. An example may be the mov instruction, which takes a destination register and a source register. A move from r3 to r1 would be:
+        
+        mov r1 r3
+
+    Another example would be the ldw instruction, which takes a destination register, a pointer register and an immediate offset. A ldw to r0, with r1 as the pointer and 0x1234 as the offset, would look like this:
+
+        ldw r0 r1 0x1234
+
+
+
+Opcodes:
+
+    Value   Name    Arguments       Description
+    
+    0       nop     None            Does nothing. Takes 3 clock cycles.
+    1       add     A B             A and B are both registers, A += B. Takes 3 clock cycles.
+    2       sub     A B             A and B are both registers, A -= B. Takes 3 clock cycles.
+    3       shl     A B             A and B are both registers, A = A << (B & 0xf). Takes 3 clock cycles.
+    4       shr     A B             A and B are both registers, A = A >> (B & 0xf). Takes 3 clock cycles.
+    5       xor     A B             A and B are both registers, A ^= B. Takes 3 clock cycles.
+    6       bor     A B             A and B are both registers, A |= B. Takes 3 clock cycles.
+    7       and     A B             A and B are both registers, A &= B. Takes 3 clock cycles.
+    8       cmp     A B             A and B are both registers, subtracts B from A, and sets the flags accordingly. Takes 3 clock cycles.
+    9       mov     A B             A and B are both registers, A = B. Takes 3 clock cycles.
+    10      ldw     A B offset      A and B are both registers, while offset is an immediate 16 bit value. A = IO[B+offset | (db << 16)]. Loads in 2 bytes in little endian regardless of the register. Takes 5 clock cycles.
+    11      stw     A B offset      A and B are both registers, while offset is an immediate 16 bit value. IO[B+offset | (db << 16)] = A. Saves 2 bytes in little endian regardless of the register. Takes 5 clock cycles
+    12      liw     A offset        A is a register, while offset is an immediate 16 bit value. A = IO[offset]. Loads in 2 bytes in little endian regardless of the register. Takes 5 clock cycles.
+    13      siw     A offset        A is a register, while offset is an immediate 16 bit value. IO[offset] = A. Saves 2 bytes in little endian regardless of the register. Takes 5 clock cycles.
+    14      psh     A               A is a register. IO[sp-=2] = A. Saves 2 bytes in little endian regardless of the register. Pre-decrements the stack pointer by 2. Takes 4 clock cycles
+    15      pop     A               A is a register. IO[sp] = A; sp+=2. Loads 2 bytes in little endian regardless of the register. Post-increments the stack pointer by 2. Takes 5 clock cycles
+    16      jmp     address         Address is an immediate 16 bit value. pc = offset. Takes 4 clock cycles.
+    17      jie     address         Address is an immediate 16 bit value. if (zero) pc = offset. Takes 4 clock cycles regardless of whether or not the condition is true.
+    18      jne     address         Address is an immediate 16 bit value. if (!zero) pc = offset. Takes 4 clock cycles regardless of whether or not the condition is true.
+    19      jic     address         Address is an immediate 16 bit value. if (carry) pc = offset. Takes 4 clock cycles regardless of whether or not the condition is true.
+    20      jnc     address         Address is an immediate 16 bit value. if (!carry) pc = offset. Takes 4 clock cycles regardless of whether or not the condition is true.
+    21      jin     address         Address is an immediate 16 bit value. if (negative) pc = offset. Takes 4 clock cycles regardless of whether or not the condition is true.
+    22      jnn     address         Address is an immediate 16 bit value. if (!negative) pc = offset. Takes 4 clock cycles regardless of whether or not the condition is true.
+    23      cmi     A value         A is a register, while value is an immediate 16 bit value. subtracts value from A, and sets the flags accordingly. Takes 4 clock cycles.
+    24      jab     bank address    Bank and address are both immediate 16 bit values. pb = bank&0xf; pc = address. The upper byte of bank is ignored. Destroys the value in db. Takes 7 clock cycles.
+    25      jms     address         Address is an immediate 16 bit value. IO[sp-=2] = pc; pc = address. Stores pc on the stack before jumping to the address. Takes 6 clock cycles.
+    26      ret     None            pc = IO[sp]; sp+=2. Loads the current value on the stack into pc. Takes 5 clock cycles.
+    27      adi     A value         A is a register, while value is an immediate 16 bit value. A += value. Takes 4 clock cycles.
+    28      sbi     A value         A is a register, while value is an immediate 16 bit value. A -= value. Takes 4 clock cycles.
+    29      sli     A value         A is a register, while value is an immediate 16 bit value. A = A << (value & 0xf). Takes 4 clock cycles.
+    30      sri     A value         A is a register, while value is an immediate 16 bit value. A = A >> (value & 0xf). Takes 4 clock cycles.
+    31      xri     A value         A is a register, while value is an immediate 16 bit value. A ^= value. Takes 4 clock cycles.
+    32      ori     A value         A is a register, while value is an immediate 16 bit value. A |= value. Takes 4 clock cycles.
+    33      ani     A value         A is a register, while value is an immediate 16 bit value. A &= value. Takes 4 clock cycles.
+    34      mvi     A value         A is a register, while value is an immediate 16 bit value. A = value. Takes 4 clock cycles.
+
+
+
+
+
