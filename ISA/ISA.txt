@@ -1,5 +1,6 @@
 The Impostor2 is a non backwards compatible upgrade from the 8-Bit Impostor (Which I never released an ISA for).
 The Impostor2 is a 16 bit CPU with a 16 bit data bus, a 24 bit address bus, 4 general purpose registers, a 64K stack, a base pointer and more.
+Btw the IO is byte addressable.
 
 
 
