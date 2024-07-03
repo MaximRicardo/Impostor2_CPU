@@ -60,7 +60,7 @@ namespace Impostor2 {
 		bool carry = false;
 		bool negative = false;
 
-		int ExecInstr(unsigned char* io);
+		int ExecInstr(unsigned char* io, bool* accessedInput);
 
 	};
 }
