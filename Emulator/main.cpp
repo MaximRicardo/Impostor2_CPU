@@ -4,7 +4,6 @@
 
 #include "raylib.h"
 #include "Cpu.hpp"
-#include "Input.hpp"
 
 
 #define SCR_WIDTH 1280
@@ -141,7 +140,8 @@ int main(int argc, char* argv[]) {
             if (accessedInput) io[INPUT_ADDRESS] = 0;
 
             if (io[TTY_ADDRESS] == '\n') {
-                ++cursorY;
+                if (cursorY < CHAR_RES_HEIGHT-1) ++cursorY;
+                else ShiftCharBufferUp(charBuffer.get());
                 cursorX = 0;
 
                 io[TTY_ADDRESS] = 0;
