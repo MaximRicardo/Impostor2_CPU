@@ -1,5 +1,7 @@
 #include "Cpu.hpp"
 
+#define INPUT_ADDRESS 0x030000
+
 void Impostor2::Cpu::ReduceBankRegs() {
 	regs[6] = regs[6] & 0xff;
 	regs[7] = regs[7] & 0xff;
@@ -11,7 +13,9 @@ unsigned int Impostor2::Cpu::GetPrgAddress() {
 
 }
 
-int Impostor2::Cpu::ExecInstr(unsigned char* io) {
+int Impostor2::Cpu::ExecInstr(unsigned char* io, bool* accessedInput) {
+
+    *accessedInput = false;
 
 	ReduceBankRegs();
 
@@ -92,6 +96,9 @@ int Impostor2::Cpu::ExecInstr(unsigned char* io) {
 		pc += 2;
 		int loadAddress = arg1 + regs[reg2] + (regs[7] << 16);
 		regs[reg1] = io[loadAddress] | (io[loadAddress + 1] << 8);
+      
+        if (loadAddress == INPUT_ADDRESS) *accessedInput = true;
+
 		break;
 	}
 	case STW: {
@@ -107,6 +114,9 @@ int Impostor2::Cpu::ExecInstr(unsigned char* io) {
 		pc += 2;
 		int loadAddress = arg1 + (regs[7] << 16);
 		regs[reg1] = io[loadAddress] | (io[loadAddress + 1] << 8);
+      
+        if (loadAddress == INPUT_ADDRESS) *accessedInput = true;
+
 		break;
 	}
 	case SIW: {
@@ -130,6 +140,9 @@ int Impostor2::Cpu::ExecInstr(unsigned char* io) {
 		int loadAddress = regs[4] + (regs[7] << 16);
 		regs[reg1] = io[loadAddress] | (io[loadAddress + 1] << 8);
 		regs[4] += 2;
+      
+        if (loadAddress == INPUT_ADDRESS) *accessedInput = true;
+
 		break;
 	}
 	case JMP: {
@@ -219,6 +232,9 @@ int Impostor2::Cpu::ExecInstr(unsigned char* io) {
 		int loadAddress = regs[4] + (regs[7] << 16);
 		pc = (io[loadAddress] | (io[loadAddress + 1] << 8)) + 2;
 		regs[4] += 2;
+      
+        if (loadAddress == INPUT_ADDRESS) *accessedInput = true;
+
 		break;
 	}
 	case ADI: {
@@ -267,7 +283,6 @@ int Impostor2::Cpu::ExecInstr(unsigned char* io) {
 		clockTicks += 2;
 		pc += 2;
 		regs[reg1] = arg1;
-		//printf("reg %d: %04x\n", reg1, arg1);
 		break;
 	}
 	}
