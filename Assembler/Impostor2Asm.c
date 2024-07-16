@@ -1,4 +1,4 @@
-//Single header file assembler for Impostor2 CPU Architecture
+//Single file assembler for Impostor2 CPU Architecture
 
 #include <stdio.h>
 #include <stdlib.h>
